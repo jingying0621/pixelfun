@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PixelFun! 像素互动世界</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Press Start 2P', cursive;
+      background: #111;
+      color: #fff;
+      overflow-x: hidden;
+      position: relative;
+    }
+    h1, h2, h3, p, button, input {
+      font-family: 'Press Start 2P', cursive;
+    }
+    section {
+      padding: 60px 20px;
+      text-align: center;
+    }
+    .hero {
+      background: #222;
+      padding: 100px 20px;
+      color: #ffcc00;
+    }
+    .hero button {
+      margin-top: 20px;
+      padding: 12px 24px;
+      font-size: 16px;
+      border: 4px solid #ffcc00;
+      background: #111;
+      color: #ffcc00;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .hero button:hover {
+      transform: scale(1.1);
+    }
+    .shop-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+      margin-top: 30px;
+    }
+    .shop-item {
+      background: #222;
+      padding: 20px;
+      border: 4px solid #00ffff;
+      color: #fff;
+      width: 150px;
+      text-align: center;
+    }
+    .shop-item button {
+      margin-top: 10px;
+      background: #111;
+      color: #00ffff;
+      border: 2px solid #00ffff;
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+    .inventory {
+      margin-top: 30px;
+      background: #222;
+      padding: 20px;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+      border: 4px solid #ffcc00;
+    }
+    .inventory ul {
+      list-style: none;
+      padding: 0;
+    }
+    .inventory li {
+      margin: 10px 0;
+    }
+    .theme-toggle {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      background: #222;
+      color: #fff;
+      border: 2px solid #fff;
+      padding: 10px;
+      cursor: pointer;
+    }
+    .light {
+      background: #fff;
+      color: #111;
+    }
+    .sparkle {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: yellow;
+      animation: float 1s ease-out forwards;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    @keyframes float {
+      to {
+        opacity: 0;
+        transform: translateY(-100px) scale(1.5);
+      }
+    }
+  </style>
+</head>
+<body onclick="spawnSparkle(event)">
+
+  <!-- 开始界面 -->
+  <section class="hero">
+    <h1>🎮 PixelFun 世界</h1>
+    <p>点一下开始你的像素冒险！</p>
+    <button onclick="startGame()">点击开始</button>
+  </section>
+
+  <!-- 游戏内容 -->
+  <div id="game" style="display: none;">
+    <section>
+      <h2>💰 我的金币</h2>
+      <p id="coinCount">金币：0</p>
+    </section>
+    <section id="petContainer" style="margin-top: 40px; text-align: center;">
+      <h2>🐱 小猫</h2>
+      <div style="margin-bottom: 8px; color: #ffcc00;" id="happiness">快乐值：0</div>
+      <img id="petImage" src="https://i.imgur.com/727liQg.png" alt="小猫" width="80" />
+      <div>
+        <button onclick="feedPet()" style="margin-top: 10px; font-size: 20px; background: #444; color: #fff; border: 2px solid #ffcc00; padding: 6px 12px; cursor: pointer;">
+          喂食 🐟
+        </button>
+      </div>
+    </section>
+
+    <section>
+      <h2>🛒 像素商店</h2>
+      <div class="shop-grid">
+        <div class="shop-item">
+          <p>🍪 像素饼干</p>
+          <button onclick="buyItem(this, '🍪 像素饼干', 5)">5 金币购买</button>
+        </div>
+        <div class="shop-item">
+          <p>🧃 像素果汁</p>
+          <button onclick="buyItem(this, '🧃 像素果汁', 8)">8 金币购买</button>
+        </div>
+        <div class="shop-item">
+          <p>🎮 游戏徽章</p>
+          <button onclick="buyItem(this, '🎮 游戏徽章', 10)">10 金币购买</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="inventory">
+      <h2>🎒 我的背包</h2>
+      <ul id="inventoryList">
+        <li>（空空如也）</li>
+      </ul>
+    </section>
+  </div>
+
+  <!-- 音效资源 -->
+  <audio id="buySuccess" src="https://files.catbox.moe/qd0a5c.mp3"></audio>
+  <audio id="buyFail" src="https://files.catbox.moe/oymh74.mp3"></audio>
+  <audio id="meowSound" src="https://files.catbox.moe/44ow24.mp3"></audio>
+  <audio id="evolveSound" src="https://files.catbox.moe/fgtz4k.mp3"></audio>
+
+  <!-- 背景音乐播放器 -->
+  <audio id="bgm" loop></audio>
+  <button id="musicToggle" style="position: fixed; bottom: 80px; right: 20px; z-index: 999; background: #111; color: #fff; border: 2px solid #fff; font-size: 14px; padding: 10px; cursor: pointer;">
+    🔊
+  </button>
+  <button id="switchMusic" style="position: fixed; bottom: 140px; right: 20px; z-index: 999; background: #111; color: #fff; border: 2px solid #fff; font-size: 14px; padding: 10px; cursor: pointer;">
+    🎵 切换音乐
+  </button>
+
+  <script>
+    let coins = 49;
+    let happiness = 0;
+    let petStage = 0;
+    const inventory = [];
+
+    function startGame() {
+      document.querySelector(".hero").style.display = "none";
+      document.getElementById("game").style.display = "block";
+      updateCoinsDisplay();
+      updateInventory();
+    }
+
+    function updateCoinsDisplay() {
+      document.getElementById("coinCount").textContent = `金币：${coins}`;
+    }
+
+    function spawnSparkle(e) {
+      const sparkle = document.createElement('div');
+      sparkle.className = 'sparkle';
+      sparkle.style.left = `${e.pageX}px`;
+      sparkle.style.top = `${e.pageY}px`;
+      document.body.appendChild(sparkle);
+      setTimeout(() => sparkle.remove(), 1000);
+      coins++;
+      updateCoinsDisplay();
+    }
+
+    function buyItem(button, itemName, price) {
+      const successSound = document.getElementById("buySuccess");
+      const failSound = document.getElementById("buyFail");
+
+      if (inventory.includes(itemName)) {
+        alert('你已经拥有这个物品了！');
+        failSound.play();
+        return;
+      }
+      if (coins >= price) {
+        coins -= price;
+        inventory.push(itemName);
+        updateCoinsDisplay();
+        updateInventory();
+        button.textContent = '✅ 已购买';
+        button.disabled = true;
+        button.style.background = '#555';
+        successSound.play();
+      } else {
+        alert('金币不足！');
+        failSound.play();
+      }
+    }
+
+    function updateInventory() {
+      const list = document.getElementById("inventoryList");
+      list.innerHTML = "";
+      if (inventory.length === 0) {
+        list.innerHTML = '<li>（空空如也）</li>';
+        return;
+      }
+      inventory.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        list.appendChild(li);
+      });
+    }
+
+    function feedPet() {
+      const meow = document.getElementById("meowSound");
+      if (coins >= 3) {
+        coins -= 3;
+        happiness++;
+        updateCoinsDisplay();
+        document.getElementById("happiness").textContent = `快乐值：${happiness}`;
+        updatePetImage();
+        meow.play();
+      } else {
+        alert("金币不足，无法喂食！");
+      }
+    }
+    
+    function updatePetImage() {
+      const petImage = document.getElementById("petImage");
+      const evolveSound = document.getElementById("evolveSound");
+
+       // 进入喵王阶段
+      if (happiness >= 30 && petStage < 2) {
+        petImage.src = "https://i.imgur.com/0ud9yXx.png"; // 喵王
+        petStage = 2;
+        evolveSound.play();
+        alert("🎉 恭喜！小喵进化成喵王啦！");
+        // 进入少年阶段
+      } else if (happiness >= 10 && petStage < 1) {
+        petImage.src = "https://i.imgur.com/vK8yTup.png";// 少年猫
+        petStage = 1;
+        evolveSound.play();
+        alert("✨ 小喵长大了一点！");
+      } else if (happiness < 10 && petStage !== 0) {
+        petImage.src = "https://i.imgur.com/727liQg.png";// 幼年猫
+        petStage = 0;
+      }
+    }
+
+    const musicTracks = [
+      "https://files.catbox.moe/sag5ku.mp3",
+      "https://files.catbox.moe/o4ru8e.mp3"
+    ];
+    let currentTrackIndex = 0;
+    const bgm = document.getElementById('bgm');
+    const toggleBtn = document.getElementById('musicToggle');
+    const switchBtn = document.getElementById('switchMusic');
+
+    window.addEventListener('click', () => {
+      if (!bgm.src) {
+        bgm.src = musicTracks[currentTrackIndex];
+        bgm.volume = 0.3;
+        bgm.play();
+      }
+    }, { once: true });
+
+    toggleBtn.addEventListener('click', () => {
+      if (bgm.paused) {
+        bgm.play();
+        toggleBtn.textContent = '🔊';
+      } else {
+        bgm.pause();
+        toggleBtn.textContent = '⏸';
+      }
+    });
+
+    switchBtn.addEventListener('click', () => {
+      currentTrackIndex = (currentTrackIndex + 1) % musicTracks.length;
+      bgm.src = musicTracks[currentTrackIndex];
+      bgm.play();
+      toggleBtn.textContent = '🔊';
+    });
+  </script>
+</body>
+</html>
